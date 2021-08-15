@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>petite-vue-youtube-search</title>
+  </head>
+
+  <body>
+    <link rel="stylesheet" href="https://unpkg.com/tailwindcss@^2/dist/tailwind.min.css">
+    <script type="module">
+      import {createApp} from 'https://unpkg.com/petite-vue?module';
+
+      function Container() {
+        return {
+          channelId: '',
+          key: '[YOUR_KEY]',
+          videos: [],
+          async getVideos() {
+            var channelInfo = await fetch(`https://www.googleapis.com/youtube/v3/search?key=${this.key}&channelId=${this.channelId}&part=snippet,id&order=date&maxResults=20`)
+            var response = await channelInfo.json();
+            this.videos = response.items;
+          },
+          clearChannel() {
+            this.videos = [];
+            this.channelId = '';
+          }
+        }
+      }
+
+      function Video(props) {
+        return {
+          $template: '#video-component',
+          videoId: props.videoId,
+          thumbnail: props.thumbnail,
+          title: props.title
+        }
+      }
+
+      createApp({
+        Container,
+        Video
+      }).mount()
+
+    </script>
+
+    <template id="video-component">
+      <div>
+        <a :href="`https://www.youtube.com/watch?v=${videoId}`" target="_blank" rel="noopener noreferrer">
+          <div class="w-full h-40 md:h-28 lg:h-40 overflow-hidden relative">
+            <img class="absolute inset-0 -mt-8 w-full" :src="`${thumbnail}`" alt="">
+          </div>
+          <div class="font-bold text-white text-sm h-12 mt-2 p-1"> {{title}} </div>
+        </a>
+      </div>
+    </template>
+
+    <div v-scope="Container()" class="bg-gray-900 min-h-screen p-20">
+      <div class="mb-12">
+        <div v-if="videos.length === 0" class="h-full w-full flex flex-col items-center justify-center">
+          <div class="text-4xl font-bold text-white mb-8">YouTube <span class="text-red-600 ">Search</span></div>
+          <div class="flex items-center justify-center mb-8 w-full">
+            <input v-model="channelId" type="text" class="w-1/2 border border-gray-400 p-2 bg-gray-600 text-white">
+            <button @click="getVideos" class="py-2 px-8 bg-red-600 text-white font-bold ml-4 rounded-md">Search</button>
+          </div>
+          <div class="text-sm text-gray-300">Enter a YouTube channel ID to view that channels videos.</div>
+        </div>
+        <div v-else>
+          <button @click="clearChannel" class="py-2 px-4 bg-red-600 text-white font-bold rounded-md">Clear Search</button>
+        </div>
+      </div>
+      <div v-if="videos.length > 0">
+        <header>
+          <div class="flex md:flex-row flex-col mb-12">
+            <iframe height="250" class="w-full md:w-1/2 mb-4" :src="`https://www.youtube.com/embed/${videos[0].id.videoId}`" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+            <div class="md:w-1/2 w-full ml-4 text-white">
+              <div class="font-bold text-2xl mb-6">{{videos[0].snippet.channelTitle}}</div>
+              <div>{{videos[0].snippet.description}}</div>
+            </div>
+          </div>
+        </header>
+        <div class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-4">
+          <div v-for="(video, i) in videos" :key="i" class="border-2 border-transparent hover:border-red-600">
+            <div v-scope="Video({videoId: video.id.videoId, thumbnail: video.snippet.thumbnails.high.url, title: video.snippet.title,})"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </body>
+</html>
